@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const fs = require("fs");
 
 const { LazyMinter } = require("./lib");
 const ethers = require("ethers");
@@ -7,9 +8,11 @@ const ethers = require("ethers");
 const db = require("quick.db");
 
 const app = express();
-const port = 7001;
+const port = 7000;
 app.options("*", cors());
 app.use(cors({ origin: "*", credentials: true }));
+
+// db.set("currentVoucherId", 421);
 
 const itx = new ethers.providers.InfuraProvider("rinkeby", "63ded85a9a5442c6ae2b94c2e97fb8c4");
 const minter = new ethers.Wallet(
@@ -25,7 +28,16 @@ app.get("/create/voucher", async (req, res) => {
   if (!req.query.count) {
     res.status(400).send("Count value not provided");
   }
-
+  var currentVoucherId;
+  try {
+    currentVoucherId = await db.get("currentVoucherId");
+    console.log(currentVoucherId);
+  } catch (err) {
+    console.log(err);
+  }
+  if (currentVoucherId >= 9902) {
+    return res.status(402).send("All vouchers claimed");
+  }
   let count = req.query.count;
   let vouchers = [];
 
@@ -34,21 +46,15 @@ app.get("/create/voucher", async (req, res) => {
   }
 
   for (let i = 0; i < count; i++) {
-    var currentIndex = await db.get("Ghoulies.currentIndex");
-    let GhoulieJSON = await db.get(`Ghoulies.mintable[${currentIndex}]`);
-    if (GhoulieJSON == 6000) {
-      return res.status(402).send("All vouchers claimed");
-    }
-
-    let cid = "Qma2Ha3HrCRpyB8ooKzvB1ErEtLCSzgwt4z2sRDtM77R9H/" + GhoulieJSON + ".json";
+    let cid = "Qma2Ha3HrCRpyB8ooKzvB1ErEtLCSzgwt4z2sRDtM77R9H/" + currentVoucherId + ".json";
 
     let voucher = await lazyMinter.createVoucher(false, cid, minPrice);
     console.log(voucher);
     vouchers.push(voucher);
-    currentIndex++;
-    await db.set("Ghoulies.currentIndex", currentIndex);
+    currentVoucherId++;
   }
   // console.log(currentVoucherId);
+  await db.add("currentVoucherId", count);
   res.status(200).send(vouchers);
 });
 
