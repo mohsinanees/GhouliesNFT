@@ -289,7 +289,7 @@ contract GhoulieNFT is ERC721URIStorage, EIP712, AccessControl, Ownable {
         pendingWithdrawals[withdrawalAddress] += msg.value;
     }
 
-    /// @notice Transfers all pending withdrawal balance to the caller. Reverts if the caller is not an authorized minter.
+    /// @notice Transfers all pending withdrawal balance to the owner. Reverts if the caller is not an authorized minter.
     function withdraw() public {
         require(_msgSender() == withdrawalAddress, "Unauthorized withdrawal");
 
